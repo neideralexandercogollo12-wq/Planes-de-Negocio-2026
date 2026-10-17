@@ -317,6 +317,10 @@ function setupEventListeners() {
     document.getElementById('add-student-form').addEventListener('submit', handleAddStudent);
     const buscador = document.getElementById('dashboard-search');
     if (buscador) buscador.addEventListener('input', renderDashboardTable);
+    const filtroEvaluaciones = document.getElementById('dashboard-evaluation-filter');
+    if (filtroEvaluaciones) filtroEvaluaciones.addEventListener('change', renderDashboardTable);
+    const filtroEvaluador = document.getElementById('dashboard-evaluator-filter');
+    if (filtroEvaluador) filtroEvaluador.addEventListener('change', renderDashboardTable);
     
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => switchView(btn.dataset.view));
@@ -511,7 +515,17 @@ function updateDashboard() {
     document.getElementById('stat-estudiantes').textContent = estudiantes.length;
     document.getElementById('stat-evaluadores').textContent = evaluadores.length;
     document.getElementById('stat-evaluaciones').textContent = evaluaciones.length;
-    document.getElementById('stat-completadas').textContent = evaluaciones.filter(e => e.estado === 'completada').length;
+    document.getElementById('stat-completadas').textContent = estudiantes.filter(est =>
+        evaluacionesCompletadasDe(est.id).length === MAX_EVALUADORES_POR_ESTUDIANTE
+    ).length;
+    const selectorEvaluador = document.getElementById('dashboard-evaluator-filter');
+    if (selectorEvaluador) {
+        const seleccionado = selectorEvaluador.value;
+        selectorEvaluador.innerHTML = '<option value="">Todos los evaluadores</option>' + [...evaluadores]
+            .sort((a, b) => a.nombre_completo.localeCompare(b.nombre_completo, 'es'))
+            .map(ev => `<option value="${esc(ev.id)}">${esc(ev.nombre_completo)}</option>`).join('');
+        if (evaluadores.some(ev => ev.id === seleccionado)) selectorEvaluador.value = seleccionado;
+    }
     
     renderDashboardTable();
 }
@@ -595,17 +609,28 @@ async function cambiarRolUsuario(userId, nuevoRol) {
     }
 }
 
+function evaluacionesCompletadasDe(estudianteId) {
+    return evaluaciones.filter(e => e.estudiante_id === estudianteId && e.estado === 'completada');
+}
+
 function renderDashboardTable() {
     const tbody = document.getElementById('dashboard-table-body');
     tbody.innerHTML = '';
     
     const filtro = ((document.getElementById('dashboard-search') || {}).value || '').toLowerCase().trim();
-    const lista = filtro
+    const filtroEvaluaciones = document.getElementById('dashboard-evaluation-filter')?.value || '';
+    const filtroEvaluador = document.getElementById('dashboard-evaluator-filter')?.value || '';
+    const coincidenciasNombre = filtro
         ? estudiantes.filter(e => e.nombre_completo.toLowerCase().includes(filtro) || String(e.cedula).includes(filtro))
         : estudiantes;
+    const coincidenciasEvaluaciones = filtroEvaluaciones === '' ? coincidenciasNombre
+        : coincidenciasNombre.filter(est => evaluacionesCompletadasDe(est.id).length === Number(filtroEvaluaciones));
+    const lista = filtroEvaluador === '' ? coincidenciasEvaluaciones
+        : coincidenciasEvaluaciones.filter(est => asignaciones.some(a =>
+            a.estudiante_id === est.id && a.evaluador_id === filtroEvaluador));
     
     lista.forEach(est => {
-        const evasEst = evaluaciones.filter(e => e.estudiante_id === est.id && e.estado === 'completada');
+        const evasEst = evaluacionesCompletadasDe(est.id);
         const asignados = asignaciones.filter(a => a.estudiante_id === est.id).length;
         const totalEvaluadores = Math.max(asignados, 1);
         const sumaNotas = evasEst.reduce((sum, e) => sum + (e.nota_individual || 0), 0);
@@ -630,7 +655,7 @@ function renderDashboardTable() {
         tbody.appendChild(tr);
     });
     if (!tbody.children.length) {
-        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${filtro ? 'Ningún estudiante coincide con la búsqueda.' : 'Aún no hay estudiantes registrados.'}</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="6" class="empty-state">${filtro || filtroEvaluaciones !== '' || filtroEvaluador !== '' ? 'Ningún estudiante coincide con los filtros seleccionados.' : 'Aún no hay estudiantes registrados.'}</td></tr>`;
     }
 }
 
@@ -888,13 +913,19 @@ function showEvalFormById(estudianteId) {
     if (est) showEvalForm(est);
 }
 
+function etiquetaRutaEspecial(estudiante) {
+    return estudiante.ruta_especial === true
+        ? '<span class="ruta-especial-badge" title="Participante de ruta especial; su entrega tiene características diferentes" aria-label="Ruta especial: Participante de ruta especial; su entrega tiene características diferentes">Ruta especial</span>'
+        : '';
+}
+
 function showEvalForm(estudiante) {
     selectedStudent = estudiante;
     evalValues = {};
     
     document.getElementById('eval-list-view').style.display = 'none';
     document.getElementById('eval-form-view').style.display = 'block';
-    document.getElementById('eval-student-info').innerHTML = `<strong>${esc(estudiante.nombre_completo)}</strong>`;
+    document.getElementById('eval-student-info').innerHTML = `<strong>${esc(estudiante.nombre_completo)}</strong>${etiquetaRutaEspecial(estudiante)}`;
     document.getElementById('comentario-global').value = '';
     
     const evaExistente = evaluaciones.find(e => 
@@ -930,7 +961,7 @@ function renderEvalTable() {
         
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="white-space:normal">${esc(est.nombre_completo)}</td>
+            <td style="white-space:normal">${esc(est.nombre_completo)}${etiquetaRutaEspecial(est)}</td>
             <td><span class="badge ${completada ? 'badge-success' : 'badge-warning'}">${completada ? 'Completada' : 'Pendiente'}</span></td>
             <td><strong>${completada ? eva.nota_individual.toFixed(2) : '-'}</strong></td>
             <td><button class="btn btn-primary btn-table-action" onclick="showEvalFormById('${est.id}')">${completada ? 'Ver/Editar' : 'Evaluar'}</button></td>

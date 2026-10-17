@@ -9,7 +9,7 @@
     <link rel="icon" type="image/x-icon" href="favicon.ico">
     <link rel="icon" type="image/png" sizes="32x32" href="favicon-32x32.png">
     <link rel="icon" type="image/png" sizes="16x16" href="favicon-16x16.png">
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="style.css?v=20261017-dashboard-evaluador">
     <link rel="stylesheet" href="documentos.css">
     <link rel="stylesheet" href="branding.css?v=20261016-banner">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -93,13 +93,28 @@
                     </div>
                     <div class="stat-card">
                         <div class="stat-value" id="stat-completadas">0</div>
-                        <div class="stat-label">Completadas</div>
+                        <div class="stat-label">Emprendimientos completados</div>
                     </div>
                 </div>
                 <div class="table-container">
                     <div class="table-header table-header-search">
                         <h3>Notas Finales</h3>
                         <input type="search" id="dashboard-search" class="search-input" placeholder="Buscar por nombre o cédula..." aria-label="Buscar estudiante">
+                        <label class="dashboard-evaluation-filter">
+                            Evaluaciones finalizadas
+                            <select id="dashboard-evaluation-filter">
+                                <option value="">Todas</option>
+                                <option value="0">0 evaluaciones</option>
+                                <option value="1">1 evaluación</option>
+                                <option value="2">2 evaluaciones</option>
+                            </select>
+                        </label>
+                        <label class="dashboard-evaluation-filter">
+                            Evaluador(a)
+                            <select id="dashboard-evaluator-filter">
+                                <option value="">Todos los evaluadores</option>
+                            </select>
+                        </label>
                     </div>
                     <table>
                         <thead>
@@ -266,7 +281,7 @@
     <script src="config.js"></script>
     <!-- Modo demo: pon DEMO_MODE = true en config.js y descomenta la siguiente línea -->
     <!-- <script src="demo-data.js"></script> -->
-    <script src="app.js?v=20261016-banner"></script>
+    <script src="app.js?v=20261017-dashboard-evaluador"></script>
     <script src="documentos-core.js"></script>
     <script src="documentos.js"></script>
 </body>
